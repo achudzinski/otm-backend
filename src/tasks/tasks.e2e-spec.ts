@@ -128,7 +128,63 @@ describe('Tasks', () => {
                 {id: 3, title: "Task C", completed: false},
             ]);
         });
-    })
+    });
+
+    describe("updating task", () => {
+        it(`update task`, async () => {
+            await request(app.getHttpServer())
+                .post('/tasks/update')
+                .send({
+                    "id": 1,
+                    "title": "XX",
+                })
+                .expect(201);
+
+            await assertListOfTasks(app, [
+                {id: 1, title: "XX", completed: false},
+                {id: 2, title: "Task B", completed: true},
+                {id: 3, title: "Task C", completed: false},
+            ]);
+        });
+
+        it(`validates if task exists`, async () => {
+            await request(app.getHttpServer())
+                .post('/tasks/update')
+                .send({
+                    "id": 10,
+                    "title": "XX",
+                })
+                .expect(400)
+                .expect({
+                    message: "Task not found",
+                });
+
+            await assertListOfTasks(app, [
+                {id: 1, title: "Task A", completed: false},
+                {id: 2, title: "Task B", completed: true},
+                {id: 3, title: "Task C", completed: false},
+            ]);
+        });
+
+        it(`validates title when updating task`, async () => {
+            await request(app.getHttpServer())
+                .post('/tasks/update')
+                .send({
+                    "id": 1,
+                    "title": "",
+                })
+                .expect(400)
+                .expect({
+                    message: "Title cannot be blank",
+                });
+
+            await assertListOfTasks(app, [
+                {id: 1, title: "Task A", completed: false},
+                {id: 2, title: "Task B", completed: true},
+                {id: 3, title: "Task C", completed: false},
+            ]);
+        });
+    });
 
 
     afterEach(async () => {

@@ -31,6 +31,11 @@ export class TasksService {
         await this.tasksRepository.save(task);
     }
 
+    async update(task: Task, title: string): Promise<void> {
+        task.title = title;
+        await this.tasksRepository.save(task);
+    }
+
     async remove(id: string): Promise<void> {
         await this.tasksRepository.delete(id);
     }

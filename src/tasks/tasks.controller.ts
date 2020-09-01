@@ -2,6 +2,7 @@ import {Body, Controller, Get, HttpStatus, Inject, Post, Query, Res} from "@nest
 import {Task} from "./entities/task.entity";
 import {TasksService} from "./tasks.service";
 import {ApiService, ValidationErrorResponse} from "./api.service";
+import {take} from "rxjs/operators";
 
 @Controller("tasks")
 export class TasksController {
@@ -33,6 +34,30 @@ export class TasksController {
 
         const task = new Task(null, title);
         await this.taskService.create(task);
+
+        res.status(HttpStatus.CREATED)
+            .send({task});
+    }
+
+    @Post("update")
+    async update(@Res() res, @Body("id") id: number, @Body("title") title: string): Promise<{task: Task}|ValidationErrorResponse> {
+        const task = await this.taskService.findOneById(id);
+        if (!task) {
+            res.status(HttpStatus.BAD_REQUEST)
+                .send(this.api.createValidationErrorResponse("Task not found"));
+            return;
+        }
+
+        if (title.trim() == "") {
+            res.status(HttpStatus.BAD_REQUEST)
+                .send(this.api.createValidationErrorResponse("Title cannot be blank"));
+            return;
+        }
+
+        await this.taskService.update(
+            task,
+            title
+        );
 
         res.status(HttpStatus.CREATED)
             .send({task});
