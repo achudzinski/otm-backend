@@ -27,6 +27,10 @@ export class TasksService {
         }
     }
 
+    async create(task: Task): Promise<void> {
+        await this.tasksRepository.save(task);
+    }
+
     async remove(id: string): Promise<void> {
         await this.tasksRepository.delete(id);
     }
