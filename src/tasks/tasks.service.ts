@@ -11,19 +11,18 @@ export class TasksService {
     ) {}
 
     findAllOrdered(): Promise<Task[]> {
-        return this.tasksRepository.find();
-        //{
-        //             order: {
-        //                 id: "ASC"
-        //             }
-        //         }
+        return this.tasksRepository.find({
+            order: {
+                id: "ASC"
+            }
+        });
     }
 
     findOneById(id: number): Promise<Task> {
         return this.tasksRepository.findOne(id);
     }
 
-    async updateComplete(id: number, completed:boolean): Promise<void> {
+    async updateCompleted(id: number, completed:boolean): Promise<void> {
         const task = await this.findOneById(id);
         if (task) {
             task.completed = completed;
