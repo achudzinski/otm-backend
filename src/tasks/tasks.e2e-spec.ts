@@ -3,57 +3,103 @@ import {TasksModule} from "./tasks.module";
 import {INestApplication} from "@nestjs/common";
 import * as request from 'supertest';
 import {Task} from "./entities/task.entity";
-import {getRepositoryToken} from "@nestjs/typeorm";
+import {getRepositoryToken, TypeOrmModule} from "@nestjs/typeorm";
+import {Repository} from "typeorm";
+import {TaskRepository} from "./repositories/task.repository";
 
 describe('Tasks', () => {
     let app: INestApplication;
-
-    const tasks = [
-        {id: 1, title: "Task 1", completed: false},
-        {id: 2, title: "Task 2", completed: true},
-        {id: 3, title: "Task 3", completed: false},
-    ];
+    let tasksRepository: Repository<Task>;
 
     beforeAll(async () => {
         const moduleRef = await Test.createTestingModule({
-            imports: [TasksModule],
-        })
-            .overrideProvider(getRepositoryToken(Task))
-            .useFactory({
-                factory: () => ({
-                    create: jest.fn(async () => tasks[1]),
-                    find: jest.fn(async () => tasks),
-                    update: jest.fn((id, project2) => new Promise((resolve) => resolve(tasks[1]))),
-                    findOne: jest.fn(
-                        ({ uuid }) =>
-                            new Promise((resolve) => {
-                                resolve(tasks[1]);
-                            }),
-                    ),
-                    delete: jest.fn(async (uuid) => { return }),
-                    save: jest.fn(
-                        (data) =>
-                            new Promise((resolve) => {
-                                // data = data.uuid === undefined ? data.uuid = uuid() : data;
-                                resolve(data);
-                            }),
-                    ),
+            imports: [
+                TasksModule,
+                TypeOrmModule.forRoot({
+                    type: 'mysql',
+                    host: '127.0.0.1',
+                    port: 3041,
+                    username: 'root',
+                    password: 'root',
+                    database: 'orm-tasks-test',
+                    entities: [Task],
+                    synchronize: true,
                 }),
-            })
+            ],
+        })
             .compile();
 
         app = moduleRef.createNestApplication();
         await app.init();
+
+        tasksRepository = moduleRef.get<TaskRepository>(TaskRepository);
+
+        await tasksRepository.save([
+            new Task(1, "Task A"),
+            new Task(2, "Task B", true),
+            new Task(3, "Task C"),
+        ]);
     });
 
-    it(`/GET tasks/all`, () => {
-        return request(app.getHttpServer())
+    it(`provides list of all tasks`, async () => {
+        await request(app.getHttpServer())
             .get('/tasks/all')
             .expect(200)
-            .expect({ tasks });
+            .expect({
+                tasks: [
+                    {id: 1, title: "Task A", completed: false},
+                    {id: 2, title: "Task B", completed: true},
+                    {id: 3, title: "Task C", completed: false},
+                ]
+            });
+    });
+
+    it(`updates completed status on true`, async () => {
+        await request(app.getHttpServer())
+            .post('/tasks/update-completed')
+            .send({
+                id: 3,
+                completed: true,
+            })
+            .expect(201);
+
+        await request(app.getHttpServer())
+            .get('/tasks/all')
+            .expect(200)
+            .expect({
+                tasks: [
+                    {id: 1, title: "Task A", completed: false},
+                    {id: 2, title: "Task B", completed: true},
+                    {id: 3, title: "Task C", completed: true},
+                ]
+            });
+
+    });
+
+    it(`updates completed status on false`, async () => {
+        await request(app.getHttpServer())
+            .post('/tasks/update-completed')
+            .send({
+                id: 2,
+                completed: false,
+            })
+            .expect(201);
+
+        await request(app.getHttpServer())
+            .get('/tasks/all')
+            .expect(200)
+            .expect({
+                tasks: [
+                    {id: 1, title: "Task A", completed: false},
+                    {id: 2, title: "Task B", completed: false},
+                    {id: 3, title: "Task C", completed: false},
+                ]
+            });
     });
 
     afterAll(async () => {
+        await tasksRepository.query(`DELETE FROM tasks;`);
+
         await app.close();
     });
 });
