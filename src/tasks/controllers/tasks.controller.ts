@@ -1,9 +1,8 @@
 import {Body, Controller, Get, HttpStatus, Inject, Post, Query, Res} from "@nestjs/common";
-import {Task} from "./entities/task.entity";
-import {TasksService} from "./tasks.service";
-import {ApiService, ValidationErrorResponse} from "./api.service";
-import {take} from "rxjs/operators";
-import {TodoListsService} from "./todo_lists.service";
+import {Task} from "../entities/task.entity";
+import {TasksService} from "../services/tasks.service";
+import {ApiService, ValidationErrorResponse} from "../services/api.service";
+import {TodoListsService} from "../services/todo_lists.service";
 
 @Controller("tasks")
 export class TasksController {

@@ -1,4 +1,4 @@
-import {Test, TestingModule} from '@nestjs/testing';
+import {Test} from '@nestjs/testing';
 import {TasksModule} from "./../tasks.module";
 import {INestApplication} from "@nestjs/common";
 import * as request from 'supertest';
