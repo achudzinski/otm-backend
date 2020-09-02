@@ -1,15 +1,17 @@
 import {Test, TestingModule} from '@nestjs/testing';
-import {TasksModule} from "./tasks.module";
+import {TasksModule} from "./../tasks.module";
 import {INestApplication} from "@nestjs/common";
 import * as request from 'supertest';
-import {Task} from "./entities/task.entity";
-import {getRepositoryToken, TypeOrmModule} from "@nestjs/typeorm";
+import {Task} from "./../entities/task.entity";
+import {TypeOrmModule} from "@nestjs/typeorm";
 import {Repository} from "typeorm";
-import {TaskRepository} from "./repositories/task.repository";
+import {TaskRepository} from "./../repositories/task.repository";
+import {TodoList} from "../entities/todo_list.entity";
+import {TodoListRepository} from "../repositories/todo_list.repository";
 
-const assertListOfTasks = async (app: INestApplication, tasks:Task[]) => {
+const assertListOfTasks = async (app: INestApplication, tasks:any[], listId: number) => {
     await request(app.getHttpServer())
-        .get('/tasks/all')
+        .get('/tasks/list/?list=' + listId)
         .expect(200)
         .expect({
             tasks
@@ -19,6 +21,7 @@ const assertListOfTasks = async (app: INestApplication, tasks:Task[]) => {
 describe('Tasks', () => {
     let app: INestApplication;
     let tasksRepository: Repository<Task>;
+    let todoListRepository: Repository<TodoList>;
 
     beforeAll(async () => {
         const moduleRef = await Test.createTestingModule({
@@ -31,7 +34,7 @@ describe('Tasks', () => {
                     username: 'root',
                     password: 'root',
                     database: 'orm-tasks-test',
-                    entities: [Task],
+                    entities: [Task, TodoList],
                     synchronize: true,
                 }),
             ],
@@ -42,22 +45,34 @@ describe('Tasks', () => {
         await app.init();
 
         tasksRepository = moduleRef.get<TaskRepository>(TaskRepository);
+        todoListRepository = moduleRef.get<TodoListRepository>(TodoListRepository);
     });
 
     beforeEach(async () => {
+        const listA = new TodoList(1, "List A");
+        const listB = new TodoList(2, "List B");
+
+        await todoListRepository.save([
+            listA, listB
+        ]);
+
         await tasksRepository.save([
-            new Task(1, "Task A"),
-            new Task(2, "Task B", true),
-            new Task(3, "Task C"),
+            new Task(1, "Task A1", listA),
+            new Task(2, "Task A2", listA, true),
+            new Task(3, "Task A3", listA),
+            new Task(4, "Task C1", listB),
+            new Task(5, "Task C2", listB, true),
         ]);
     });
 
-    it(`provides list of all tasks`, async () => {
-        await assertListOfTasks(app, [
-            {id: 1, title: "Task A", completed: false},
-            {id: 2, title: "Task B", completed: true},
-            {id: 3, title: "Task C", completed: false},
-        ]);
+    describe("getting list of tasks", () => {
+        it(`provides list of all tasks by on list`, async () => {
+            await assertListOfTasks(app, [
+                {id: 1, title: "Task A1", completed: false},
+                {id: 2, title: "Task A2", completed: true},
+                {id: 3, title: "Task A3", completed: false},
+            ], 1);
+        });
     });
 
     describe("updating completed status", () => {
@@ -71,10 +86,10 @@ describe('Tasks', () => {
                 .expect(201);
 
             await assertListOfTasks(app, [
-                {id: 1, title: "Task A", completed: false},
-                {id: 2, title: "Task B", completed: true},
-                {id: 3, title: "Task C", completed: true},
-            ]);
+                {id: 1, title: "Task A1", completed: false},
+                {id: 2, title: "Task A2", completed: true},
+                {id: 3, title: "Task A3", completed: true},
+            ], 1);
         });
 
         it(`updates completed status on false`, async () => {
@@ -87,10 +102,10 @@ describe('Tasks', () => {
                 .expect(201);
 
             await assertListOfTasks(app, [
-                {id: 1, title: "Task A", completed: false},
-                {id: 2, title: "Task B", completed: false},
-                {id: 3, title: "Task C", completed: false},
-            ]);
+                {id: 1, title: "Task A1", completed: false},
+                {id: 2, title: "Task A2", completed: false},
+                {id: 3, title: "Task A3", completed: false},
+            ], 1);
         });
     });
 
@@ -100,15 +115,16 @@ describe('Tasks', () => {
                 .post('/tasks/create')
                 .send({
                     "title": "XX",
+                    "list": 1,
                 })
                 .expect(201);
 
             await assertListOfTasks(app, [
-                {id: 1, title: "Task A", completed: false},
-                {id: 2, title: "Task B", completed: true},
-                {id: 3, title: "Task C", completed: false},
-                {id: 4, title: "XX", completed: false},
-            ]);
+                {id: 1, title: "Task A1", completed: false},
+                {id: 2, title: "Task A2", completed: true},
+                {id: 3, title: "Task A3", completed: false},
+                {id: 6, title: "XX", completed: false},
+            ], 1);
         });
 
         it(`validates title when creating new task`, async () => {
@@ -116,6 +132,7 @@ describe('Tasks', () => {
                 .post('/tasks/create')
                 .send({
                     "title": "",
+                    "list": 1,
                 })
                 .expect(400)
                 .expect({
@@ -123,10 +140,29 @@ describe('Tasks', () => {
                 });
 
             await assertListOfTasks(app, [
-                {id: 1, title: "Task A", completed: false},
-                {id: 2, title: "Task B", completed: true},
-                {id: 3, title: "Task C", completed: false},
-            ]);
+                {id: 1, title: "Task A1", completed: false},
+                {id: 2, title: "Task A2", completed: true},
+                {id: 3, title: "Task A3", completed: false},
+            ], 1);
+        });
+
+        it(`validates list when creating new task`, async () => {
+            await request(app.getHttpServer())
+                .post('/tasks/create')
+                .send({
+                    "title": "XX",
+                    "list": "5",
+                })
+                .expect(400)
+                .expect({
+                    message: "List not found",
+                });
+
+            await assertListOfTasks(app, [
+                {id: 1, title: "Task A1", completed: false},
+                {id: 2, title: "Task A2", completed: true},
+                {id: 3, title: "Task A3", completed: false},
+            ], 1);
         });
     });
 
@@ -142,9 +178,9 @@ describe('Tasks', () => {
 
             await assertListOfTasks(app, [
                 {id: 1, title: "XX", completed: false},
-                {id: 2, title: "Task B", completed: true},
-                {id: 3, title: "Task C", completed: false},
-            ]);
+                {id: 2, title: "Task A2", completed: true},
+                {id: 3, title: "Task A3", completed: false},
+            ], 1);
         });
 
         it(`validates if task exists`, async () => {
@@ -160,10 +196,10 @@ describe('Tasks', () => {
                 });
 
             await assertListOfTasks(app, [
-                {id: 1, title: "Task A", completed: false},
-                {id: 2, title: "Task B", completed: true},
-                {id: 3, title: "Task C", completed: false},
-            ]);
+                {id: 1, title: "Task A1", completed: false},
+                {id: 2, title: "Task A2", completed: true},
+                {id: 3, title: "Task A3", completed: false},
+            ], 1);
         });
 
         it(`validates title when updating task`, async () => {
@@ -179,17 +215,19 @@ describe('Tasks', () => {
                 });
 
             await assertListOfTasks(app, [
-                {id: 1, title: "Task A", completed: false},
-                {id: 2, title: "Task B", completed: true},
-                {id: 3, title: "Task C", completed: false},
-            ]);
+                {id: 1, title: "Task A1", completed: false},
+                {id: 2, title: "Task A2", completed: true},
+                {id: 3, title: "Task A3", completed: false},
+            ], 1);
         });
     });
 
 
     afterEach(async () => {
         await tasksRepository.query(`DELETE FROM tasks;`);
-        await tasksRepository.query(`ALTER TABLE tasks AUTO_INCREMENT = 4;`);
+        await tasksRepository.query(`DELETE FROM todo_lists;`);
+
+        await tasksRepository.query(`ALTER TABLE tasks AUTO_INCREMENT = 6;`);
     });
 
     afterAll(async () => {

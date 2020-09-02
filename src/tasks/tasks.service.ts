@@ -1,14 +1,18 @@
 import {Injectable} from "@nestjs/common";
 import {Task} from "./entities/task.entity";
 import {TaskRepository} from "./repositories/task.repository";
+import {TodoList} from "./entities/todo_list.entity";
 
 @Injectable()
 export class TasksService {
     constructor(private tasksRepository: TaskRepository) {
     }
 
-    findAllOrdered(): Promise<Task[]> {
+    findByList(list:TodoList): Promise<Task[]> {
         return this.tasksRepository.find({
+            where: {
+                list: list
+            },
             order: {
                 id: "ASC"
             }

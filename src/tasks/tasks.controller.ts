@@ -3,19 +3,26 @@ import {Task} from "./entities/task.entity";
 import {TasksService} from "./tasks.service";
 import {ApiService, ValidationErrorResponse} from "./api.service";
 import {take} from "rxjs/operators";
+import {TodoListsService} from "./todo_lists.service";
 
 @Controller("tasks")
 export class TasksController {
 
     constructor(
         private readonly taskService:TasksService,
+        private readonly todoListsService:TodoListsService,
         private readonly api:ApiService
     ) {
     }
 
-    @Get("all")
-    async getAllTasks():Promise<{tasks: Task[]}> {
-        const tasks = await this.taskService.findAllOrdered();
+    @Get("list")
+    async getTasksByList(@Query("list") listId:string):Promise<{tasks: Task[]}> {
+        const list = await this.todoListsService.findOneById(parseInt(listId));
+        if (!list) {
+            return { tasks: [] };
+        }
+
+        const tasks = await this.taskService.findByList(list);
         return {tasks};
     }
 
@@ -25,17 +32,27 @@ export class TasksController {
     }
 
     @Post("create")
-    async create(@Res() res, @Body("title") title: string): Promise<{task: Task}|ValidationErrorResponse> {
+    async create(@Res() res, @Body("title") title: string, @Body("list") listId: string): Promise<{task: Task}|ValidationErrorResponse> {
+        const list = await this.todoListsService.findOneById(parseInt(listId));
+        if (!list) {
+            res
+                .status(HttpStatus.BAD_REQUEST)
+                .send(this.api.createValidationErrorResponse("List not found"));
+            return;
+        }
+
         if (title.trim() == "") {
-            res.status(HttpStatus.BAD_REQUEST)
+            res
+                .status(HttpStatus.BAD_REQUEST)
                 .send(this.api.createValidationErrorResponse("Title cannot be blank"));
             return;
         }
 
-        const task = new Task(null, title);
+        const task = new Task(null, title, list);
         await this.taskService.create(task);
 
-        res.status(HttpStatus.CREATED)
+        res
+            .status(HttpStatus.CREATED)
             .send({task});
     }
 

@@ -5,11 +5,14 @@ import {TasksController} from "./tasks.controller";
 import {TasksService} from "./tasks.service";
 import {TaskRepository} from "./repositories/task.repository";
 import {ApiService} from "./api.service";
+import {TodoList} from "./entities/todo_list.entity";
+import {TodoListRepository} from "./repositories/todo_list.repository";
+import {TodoListsService} from "./todo_lists.service";
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Task, TaskRepository])],
+  imports: [TypeOrmModule.forFeature([Task, TaskRepository, TodoList, TodoListRepository])],
   exports: [TypeOrmModule],
   controllers: [TasksController],
-  providers: [TasksService, ApiService],
+  providers: [TasksService, TodoListsService, ApiService],
 })
 export class TasksModule {}
