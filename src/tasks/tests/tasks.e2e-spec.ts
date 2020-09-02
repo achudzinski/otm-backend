@@ -1,3 +1,4 @@
+import config from "../../config";
 import {Test} from '@nestjs/testing';
 import {TasksModule} from "./../tasks.module";
 import {INestApplication} from "@nestjs/common";
@@ -8,6 +9,7 @@ import {Repository} from "typeorm";
 import {TaskRepository} from "./../repositories/task.repository";
 import {TodoList} from "../entities/todo_list.entity";
 import {TodoListRepository} from "../repositories/todo_list.repository";
+import testConfig from "./config";
 
 const assertListOfTasks = async (app: INestApplication, tasks:any[], listId: number) => {
     await request(app.getHttpServer())
@@ -24,25 +26,8 @@ describe('Tasks', () => {
     let todoListRepository: Repository<TodoList>;
 
     beforeAll(async () => {
-        const moduleRef = await Test.createTestingModule({
-            imports: [
-                TasksModule,
-                TypeOrmModule.forRoot({
-                    type: 'mysql',
-                    host: '127.0.0.1',
-                    port: 3041,
-                    username: 'root',
-                    password: 'root',
-                    database: 'orm-tasks-test',
-                    entities: [Task, TodoList],
-                    synchronize: true,
-                }),
-            ],
-        })
-            .compile();
-
-        app = moduleRef.createNestApplication();
-        await app.init();
+        const [application, moduleRef] = await testConfig();
+        app = application as INestApplication;
 
         tasksRepository = moduleRef.get<TaskRepository>(TaskRepository);
         todoListRepository = moduleRef.get<TodoListRepository>(TodoListRepository);
