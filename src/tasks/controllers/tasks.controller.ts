@@ -26,8 +26,9 @@ export class TasksController {
     }
 
     @Post("update-completed")
-    async updateCompletedState(@Body("id") id: number, @Body("completed") completed: boolean): Promise<void> {
+    async updateCompletedState(@Body("id") id: number, @Body("completed") completed: boolean): Promise<{}> {
         await this.taskService.updateCompleted(id, completed);
+        return {};
     }
 
     @Post("create")
