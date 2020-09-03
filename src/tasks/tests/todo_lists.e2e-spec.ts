@@ -22,6 +22,9 @@ describe('Todo lists', () => {
     });
 
     beforeEach(async () => {
+        await todoListRepository.query(`DELETE FROM tasks;`);
+        await todoListRepository.query(`DELETE FROM todo_lists;`);
+
         await todoListRepository.save([
             new TodoList(1, "List A"), new TodoList(2, "List B")
         ]);
@@ -37,10 +40,6 @@ describe('Todo lists', () => {
                     {id: 2, name: "List B"}
                 ]
             });
-    });
-
-    afterEach(async () => {
-        await todoListRepository.query(`DELETE FROM tasks;`);
     });
 
     afterAll(async () => {

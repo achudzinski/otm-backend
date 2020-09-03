@@ -34,6 +34,11 @@ describe('Tasks', () => {
     });
 
     beforeEach(async () => {
+        await tasksRepository.query(`DELETE FROM tasks;`);
+        await tasksRepository.query(`DELETE FROM todo_lists;`);
+
+        await tasksRepository.query(`ALTER TABLE tasks AUTO_INCREMENT = 6;`);
+
         const listA = new TodoList(1, "List A");
         const listB = new TodoList(2, "List B");
 
@@ -51,7 +56,7 @@ describe('Tasks', () => {
     });
 
     describe("getting list of tasks", () => {
-        it(`provides list of all tasks by on list`, async () => {
+        it(`provides list of all tasks by list`, async () => {
             await assertListOfTasks(app, [
                 {id: 1, title: "Task A1", completed: false},
                 {id: 2, title: "Task A2", completed: true},
@@ -205,14 +210,6 @@ describe('Tasks', () => {
                 {id: 3, title: "Task A3", completed: false},
             ], 1);
         });
-    });
-
-
-    afterEach(async () => {
-        await tasksRepository.query(`DELETE FROM tasks;`);
-        await tasksRepository.query(`DELETE FROM todo_lists;`);
-
-        await tasksRepository.query(`ALTER TABLE tasks AUTO_INCREMENT = 6;`);
     });
 
     afterAll(async () => {

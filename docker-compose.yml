@@ -1,0 +1,47 @@
+version: '2'
+services:
+    otm_backend_web:
+        container_name: otm_backend_web
+        build:
+            dockerfile: ./docker/node/Dockerfile
+            context: ./
+        command: npm run start
+        volumes:
+            - ./:/usr/app/
+            - /usr/app/node_modules
+        ports:
+            - "3001:3001"
+        depends_on:
+            - otm_backend_mysql
+        networks:
+            - docker_otm_backend
+        environment:
+            DB_HOST: otm_backend_mysql
+            DB_PORT: 3306
+            DB_USERNAME: user
+            DB_PASSWORD: user_pass
+            DB_NAME: otm-tasks
+
+    otm_backend_mysql:
+        container_name: otm_backend_mysql
+        build:
+            dockerfile: ./docker/mysql/Dockerfile
+            context: ./
+        environment:
+            - MYSQL_ROOT_PASSWORD=root
+            - MYSQL_DATABASE=otm-tasks
+            - MYSQL_USER=user
+            - MYSQL_PASSWORD=user_pass
+        ports:
+            - "3316:3306"
+        networks:
+            - docker_otm_backend
+        volumes:
+            - otm-mysql-volume:/var/lib/mysql
+
+volumes:
+    otm-mysql-volume:
+
+networks:
+    docker_otm_backend:
+        driver: bridge
