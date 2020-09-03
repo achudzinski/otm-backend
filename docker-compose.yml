@@ -22,6 +22,20 @@ services:
             DB_PASSWORD: user_pass
             DB_NAME: otm-tasks
 
+    otm_backend_socket_io_server:
+        container_name: otm_backend_socket_io_server
+        build:
+            dockerfile: ./docker/node_socket_io/Dockerfile
+            context: ./
+        command: npm run start
+        volumes:
+            - ./socket_io_server/:/usr/app/
+            - /usr/app/node_modules
+        ports:
+            - "3004:3004"
+        networks:
+            - docker_otm_backend
+
     otm_backend_mysql:
         container_name: otm_backend_mysql
         build:

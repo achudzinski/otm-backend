@@ -18,6 +18,11 @@ function debugLog(message) {
     }
 }
 
+app.get('/test', function(req, res) {
+    debugLog('[GET] Test ');
+    res.sendStatus(200);
+});
+
 // authentication for socket
 io.on('connection', function(socket){
     debugLog('[IO] Connected ' + socket.id);
